@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Service Performance Review</title>
+<style>
+:root{--ink:#202631;--sub:#556170;--dim:#738091;--border:#dbe1e8;--surf:#f5f7fa;--raised:#fff;--accent:#1479bd;--gain:#208254;--warn:#ac6318;--bad:#b43c36;--bg:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.75;color:var(--ink);background:var(--bg)}
+*{box-sizing:border-box}body{max-width:1020px;margin:auto;padding:32px 36px 72px}main{min-width:0}h1{font-size:1.9rem;line-height:1.4;margin:18px 0 12px;letter-spacing:-.03em}h2{font-size:1.3rem;margin:42px 0 16px;border-bottom:1px solid var(--border);padding-bottom:9px;scroll-margin-top:20px}h3{font-size:1.08rem;margin:28px 0 12px;scroll-margin-top:20px}p{margin:0 0 14px}a{color:var(--accent);text-underline-offset:3px}img{max-width:100%;height:auto}li{margin:4px 0}code{font-family:Consolas,monospace;font-size:.88em;background:#e9edf3;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}pre{background:#18202d;color:#e6edf5;padding:20px;border-radius:9px;overflow:auto;line-height:1.65}pre code{padding:0;background:none;color:inherit;white-space:pre;overflow-wrap:normal}blockquote{margin:18px 0;padding:12px 18px;border-left:3px solid var(--border);color:var(--sub)}blockquote p:last-child{margin-bottom:0}hr{border:0;border-top:1px solid var(--border);margin:32px 0}
+.topline{display:flex;justify-content:space-between;gap:16px;align-items:center;font-size:.8rem;color:var(--dim);letter-spacing:.06em}.download{border:1px solid var(--border);border-radius:6px;padding:5px 10px;text-decoration:none;background:white;white-space:nowrap}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;border:1px solid var(--border);border-radius:12px;background:var(--raised);margin:22px 0 28px;overflow:hidden}.metric{padding:20px 22px;border-right:1px solid var(--border);min-width:0}.metric-label{font-size:.82rem;color:var(--sub);margin-bottom:4px}.metric-value{font-size:1.85rem;line-height:1.35;font-weight:700;color:var(--accent);overflow-wrap:anywhere}.metric-note{font-size:.8rem;color:var(--dim);margin-top:6px}
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;margin:16px 0 24px;background:white}table{border-collapse:collapse;width:100%;font-size:.89rem}th{padding:10px 13px;background:#e9eff5;text-align:left;font-weight:600;white-space:nowrap}td{padding:9px 13px;border-top:1px solid var(--border);vertical-align:top}tbody tr:nth-child(even){background:#f8fafc}tbody tr:hover{background:#edf5fb}td,th{min-width:65px}td code{word-break:normal}
+.callout{border-left:4px solid var(--accent);padding:14px 18px;border-radius:0 7px 7px 0;background:#eaf3fa;color:var(--ink)}.callout-tip{border-color:var(--gain);background:#edf6f0}.callout-warning{border-color:var(--warn);background:#fff5e9}.callout-caution{border-color:var(--bad);background:#fcedeb}.callout-important{border-color:var(--accent);background:#eaf3fa}
+.chart{padding:22px 24px;margin:24px 0;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden}.chart figcaption{font-weight:650;font-size:1rem;margin-bottom:10px}.chart-meta{font-size:.78rem;color:var(--dim);margin-top:10px}.chart svg{display:block;width:100%;height:auto;min-width:620px}.chart-scroll{overflow:auto}.chart text{font-family:inherit;fill:var(--sub)}.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem;color:var(--sub);margin-bottom:8px}.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+nav{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-top:22px}nav summary{cursor:pointer;color:var(--sub);font-size:.85rem}nav ul{columns:2;padding-left:20px;margin:10px 0 0;font-size:.85rem}nav li{break-inside:avoid}footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--border);font-size:.78rem;color:var(--dim);overflow-wrap:anywhere}
+@media(max-width:640px){body{padding:20px 16px 48px}h1{font-size:1.55rem}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px;border-bottom:1px solid var(--border)}.metric-value{font-size:1.5rem}.chart{padding:14px}nav ul{columns:1}.topline{font-size:.72rem}}
+@media print{:root{background:#fff;font-size:11px}body{padding:0;max-width:none}.topline,nav{display:none}h2,h3{break-after:avoid}.metrics,.chart,blockquote{break-inside:avoid}.table-wrap{overflow:visible}thead{display:table-header-group}tr{break-inside:avoid}.chart svg{min-width:0}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}a{color:inherit}.chart-scroll{overflow:visible}*{print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="topline"><span>PROJECT REPORT · 项目报告</span><a class="download" download="example.md" href="data:text/markdown;charset=utf-8;base64,IyBTZXJ2aWNlIFBlcmZvcm1hbmNlIFJldmlldwoKKipEZW1vbnN0cmF0aW9uIG9ubHkuKiogQWxsIG5hbWVzIGFuZCBtZWFzdXJlbWVudHMgYmVsb3cgYXJlIHN5bnRoZXRpYy4gVGhpcyBleGFtcGxlIGlsbHVzdHJhdGVzIHJlcG9ydCBmb3JtYXR0aW5nLCBub3QgYSBiZW5jaG1hcmsgb3IgcHJvZHVjdGlvbiByZWNvbW1lbmRhdGlvbi4KCj4gWyFJTVBPUlRBTlRdCj4gKipEZWNpc2lvbjoqKiBJbiB0aGlzIGZpY3Rpb25hbCBleHBlcmltZW50LCB0aGUgb3B0aW1pemVkIGNvbmZpZ3VyYXRpb24gaW5jcmVhc2VzIHRocm91Z2hwdXQgd2hpbGUgcmVtYWluaW5nIGJlbG93IHRoZSBtZW1vcnkgYnVkZ2V0LiBWYWxpZGF0ZSB0aGUgcmVzdWx0IG9uIHlvdXIgb3duIHdvcmtsb2FkIGJlZm9yZSBkcmF3aW5nIGEgcmVhbCBjb25jbHVzaW9uLgoKPCEtLSByZXBvcnQ6bWV0cmljcyAtLT4KfCBNZXRyaWMgfCBWYWx1ZSB8IENvbnRleHQgfAp8IC0tLSB8IC0tLSB8IC0tLSB8CnwgVGhyb3VnaHB1dCB8IDE2MCByZXEvcyB8IFN5bnRoZXRpYyBvcHRpbWl6ZWQgcnVuIHwKfCBJbXByb3ZlbWVudCB8ICs2MCUgfCBSZWxhdGl2ZSB0byBhIDEwMCByZXEvcyBiYXNlbGluZSB8CnwgUGVhayBtZW1vcnkgfCA2LjQgR0IgfCBVbmRlciBhbiA4IEdCIGRlbW8gYnVkZ2V0IHwKfCBFcnJvciByYXRlIHwgMC4yJSB8IFNhbWUgZmljdGlvbmFsIHRlc3QgcHJvdG9jb2wgfAoKIyMgQ29uZmlndXJhdGlvbiBjb21wYXJpc29uCgpUaGUgY2hhcnQgcmVhZHMgdGhlIE1hcmtkb3duIHRhYmxlIGRpcmVjdGx5LiBDaGFuZ2UgYSBjZWxsIGFuZCByZWdlbmVyYXRlIHRoZSBIVE1MIHRvIHVwZGF0ZSB0aGUgY2hhcnQgYW5kIGl0cyBsYWJlbHMuCgpgYGByZXBvcnQtY2hhcnQKeyJ0eXBlIjoiYmFyIiwidGl0bGUiOiJUaHJvdWdocHV0IGJ5IGNvbmZpZ3VyYXRpb24iLCJ0YWJsZSI6ImNvbXBhcmlzb24iLCJsYWJlbCI6IkNvbmZpZ3VyYXRpb24iLCJ2YWx1ZXMiOlsiVGhyb3VnaHB1dCJdLCJ1bml0IjoicmVxL3MifQpgYGAKCjwhLS0gcmVwb3J0OnRhYmxlIGNvbXBhcmlzb24gLS0+CnwgQ29uZmlndXJhdGlvbiB8IFRocm91Z2hwdXQgfCBQZWFrIG1lbW9yeSBHQiB8CnwgLS0tIHwgLS0tOiB8IC0tLTogfAp8IEJhc2VsaW5lIHwgMTAwIHwgNC4wIHwKfCBCYXRjaGluZyB8IDEzNSB8IDUuNiB8CnwgT3B0aW1pemVkIHwgMTYwIHwgNi40IHwKCj4gWyFXQVJOSU5HXQo+ICoqTWVhc3VyZW1lbnQgc2NvcGU6KiogQ29tcGFyZSByZXN1bHRzIG9ubHkgd2hlbiBoYXJkd2FyZSwgaW5wdXQgZGF0YSwgYW5kIG1lYXN1cmVtZW50IHdpbmRvd3MgbWF0Y2guIFRoZXNlIHZhbHVlcyBhcmUgaW52ZW50ZWQgZm9yIHRoZSBleGFtcGxlLgoKIyMgVGhyb3VnaHB1dCBkdXJpbmcgYSBydW4KClRoZXNlIGZpY3Rpb25hbCBvYnNlcnZhdGlvbnMgYXJlIHRha2VuIGF0IGVxdWFsbHkgc3BhY2VkIG9uZS1taW51dGUgaW50ZXJ2YWxzLiBCb3RoIHNlcmllcyBzaGFyZSB0aGUgc2FtZSB1bml0IGFuZCBtZWFzdXJlbWVudCB3aW5kb3cuCgo8IS0tIHJlcG9ydDp0YWJsZSB0aW1lbGluZSAtLT4KfCBNaW51dGUgfCBCYXNlbGluZSB8IE9wdGltaXplZCB8CnwgLS0tIHwgLS0tOiB8IC0tLTogfAp8IDEgfCA5OCB8IDE1MiB8CnwgMiB8IDEwMCB8IDE1OCB8CnwgMyB8IDEwMSB8IDE2MCB8CnwgNCB8IDk5IHwgMTU5IHwKfCA1IHwgMTAwIHwgMTYwIHwKCmBgYHJlcG9ydC1jaGFydAp7InR5cGUiOiJsaW5lIiwidGl0bGUiOiJUaHJvdWdocHV0IG92ZXIgdGltZSIsInRhYmxlIjoidGltZWxpbmUiLCJsYWJlbCI6Ik1pbnV0ZSIsInZhbHVlcyI6WyJCYXNlbGluZSIsIk9wdGltaXplZCJdLCJ1bml0IjoicmVxL3MifQpgYGAKCiMjIFRyYWRlLW9mZnMKCjwhLS0gcmVwb3J0OnRhYmxlIGNoYW5nZXMgLS0+CnwgTWV0cmljIHwgQ2hhbmdlIHwKfCAtLS0gfCAtLS06IHwKfCBUaHJvdWdocHV0IHwgNjAlIHwKfCBQZWFrIG1lbW9yeSB8IDYwJSB8CnwgTGF0ZW5jeSB8IC0yMCUgfAoKYGBgcmVwb3J0LWNoYXJ0CnsidHlwZSI6ImJhciIsInRpdGxlIjoiUmVsYXRpdmUgY2hhbmdlIGZyb20gYmFzZWxpbmUiLCJ0YWJsZSI6ImNoYW5nZXMiLCJsYWJlbCI6Ik1ldHJpYyIsInZhbHVlcyI6WyJDaGFuZ2UiXSwidW5pdCI6IiUifQpgYGAKClBvc2l0aXZlIHZhbHVlcyBkbyBub3QgYWx3YXlzIG1lYW4gaW1wcm92ZW1lbnQ6IGhpZ2hlciBtZW1vcnkgY29uc3VtcHRpb24gaXMgYSBjb3N0LiBJbnRlcnByZXQgZWFjaCBtZXRyaWMgaW4gY29udGV4dC4KCiMjIFJlcHJvZHVjdGlvbiBub3RlcwoKYGBgdGV4dApDb25maWd1cmF0aW9uOiBmaWN0aW9uYWwgZGVtbwpJbnB1dDogZml4ZWQgc3ludGhldGljIHdvcmtsb2FkCk1lYXN1cmVtZW50IHdpbmRvdzogNSBlcXVhbGx5IHNwYWNlZCBvYnNlcnZhdGlvbnMKYGBgCgo+IFshVElQXQo+IEtlZXAgcmVhbCBjb21tYW5kcywgZGF0YSBzb3VyY2VzLCBhbmQgbGltaXRhdGlvbnMgYWxvbmdzaWRlIHRoZSBtZWFzdXJlbWVudHMuIEVkaXQgTWFya2Rvd24gYW5kIHJlZ2VuZXJhdGUgSFRNTDsgZG8gbm90IG1haW50YWluIHR3byBzZXBhcmF0ZSByZXBvcnQgYm9kaWVzLgoKIyMgTmV4dCBzdGVwcwoKMS4gUmVwbGFjZSB0aGUgZmljdGlvbmFsIG1lYXN1cmVtZW50cyB3aXRoIHZlcmlmaWVkIHByb2plY3QgZGF0YS4KMi4gVXBkYXRlIHRoZSBkZWNpc2lvbiBhbmQgbGltaXRhdGlvbnMgdG8gbWF0Y2ggdGhlIGV2aWRlbmNlLgozLiBSZWdlbmVyYXRlIHRoZSBIVE1MIGFuZCBpbnNwZWN0IGl0IGluIGEgYnJvd3Nlci4K">下载 MD 主稿</a></div>
+<main><h1 id="section-1">
+Service Performance Review</h1>
+<p>
+<strong>Demonstration only.</strong> All names and measurements below are synthetic. This example illustrates report formatting, not a benchmark or production recommendation.</p>
+<blockquote class="callout callout-important">
+<p>
+<strong>Decision:</strong> In this fictional experiment, the optimized configuration increases throughput while remaining below the memory budget. Validate the result on your own workload before drawing a real conclusion.</p>
+</blockquote>
+<div class="metrics"><div class="metric"><div class="metric-label">Throughput</div><div class="metric-value">160 req/s</div><div class="metric-note">Synthetic optimized run</div></div><div class="metric"><div class="metric-label">Improvement</div><div class="metric-value">+60%</div><div class="metric-note">Relative to a 100 req/s baseline</div></div><div class="metric"><div class="metric-label">Peak memory</div><div class="metric-value">6.4 GB</div><div class="metric-note">Under an 8 GB demo budget</div></div><div class="metric"><div class="metric-label">Error rate</div><div class="metric-value">0.2%</div><div class="metric-note">Same fictional test protocol</div></div></div><h2 id="section-2">
+Configuration comparison</h2>
+<p>
+The chart reads the Markdown table directly. Change a cell and regenerate the HTML to update the chart and its labels.</p>
+<figure class="chart"><figcaption>Throughput by configuration</figcaption><div class="legend"><span><i style="background:#1479bd"></i>Throughput</span></div><div class="chart-scroll"><svg viewBox="0 0 860 202" role="img" aria-label="Throughput by configuration"><title>Throughput by configuration</title><desc>数据表：comparison · 单位：req/s；完整数值见正文数据表。</desc><line x1="210.00" x2="210.00" y1="24" y2="177" stroke="#e2e8ef"/><text x="210.00" y="197.00" font-size="11" text-anchor="middle">0</text><line x1="347.50" x2="347.50" y1="24" y2="177" stroke="#e2e8ef"/><text x="347.50" y="197.00" font-size="11" text-anchor="middle">40</text><line x1="485.00" x2="485.00" y1="24" y2="177" stroke="#e2e8ef"/><text x="485.00" y="197.00" font-size="11" text-anchor="middle">80</text><line x1="622.50" x2="622.50" y1="24" y2="177" stroke="#e2e8ef"/><text x="622.50" y="197.00" font-size="11" text-anchor="middle">120</text><line x1="760.00" x2="760.00" y1="24" y2="177" stroke="#e2e8ef"/><text x="760.00" y="197.00" font-size="11" text-anchor="middle">160</text><text x="198.00" y="49.00" font-size="12" text-anchor="end">Baseline</text><rect x="210.00" y="35" width="343.75" height="18" rx="3" fill="#1479bd"><title>Baseline · Throughput: 100req/s</title></rect><text x="772.00" y="49.00" font-size="12" text-anchor="start">100</text><text x="198.00" y="97.00" font-size="12" text-anchor="end">Batching</text><rect x="210.00" y="83" width="464.06" height="18" rx="3" fill="#1479bd"><title>Batching · Throughput: 135req/s</title></rect><text x="772.00" y="97.00" font-size="12" text-anchor="start">135</text><text x="198.00" y="145.00" font-size="12" text-anchor="end">Optimized</text><rect x="210.00" y="131" width="550.00" height="18" rx="3" fill="#1479bd"><title>Optimized · Throughput: 160req/s</title></rect><text x="772.00" y="145.00" font-size="12" text-anchor="start">160</text><line x1="210.00" x2="210.00" y1="24" y2="177" stroke="#8493a4"/></svg></div><div class="chart-meta">数据表：comparison · 单位：req/s</div></figure><div class="table-wrap" id="table-comparison"><table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th style="text-align:right">Throughput</th>
+<th style="text-align:right">Peak memory GB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline</td>
+<td style="text-align:right">100</td>
+<td style="text-align:right">4.0</td>
+</tr>
+<tr>
+<td>Batching</td>
+<td style="text-align:right">135</td>
+<td style="text-align:right">5.6</td>
+</tr>
+<tr>
+<td>Optimized</td>
+<td style="text-align:right">160</td>
+<td style="text-align:right">6.4</td>
+</tr>
+</tbody>
+</table>
+</div><blockquote class="callout callout-warning">
+<p>
+<strong>Measurement scope:</strong> Compare results only when hardware, input data, and measurement windows match. These values are invented for the example.</p>
+</blockquote>
+<h2 id="section-3">
+Throughput during a run</h2>
+<p>
+These fictional observations are taken at equally spaced one-minute intervals. Both series share the same unit and measurement window.</p>
+<div class="table-wrap" id="table-timeline"><table>
+<thead>
+<tr>
+<th>Minute</th>
+<th style="text-align:right">Baseline</th>
+<th style="text-align:right">Optimized</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td style="text-align:right">98</td>
+<td style="text-align:right">152</td>
+</tr>
+<tr>
+<td>2</td>
+<td style="text-align:right">100</td>
+<td style="text-align:right">158</td>
+</tr>
+<tr>
+<td>3</td>
+<td style="text-align:right">101</td>
+<td style="text-align:right">160</td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align:right">99</td>
+<td style="text-align:right">159</td>
+</tr>
+<tr>
+<td>5</td>
+<td style="text-align:right">100</td>
+<td style="text-align:right">160</td>
+</tr>
+</tbody>
+</table>
+</div><figure class="chart"><figcaption>Throughput over time</figcaption><div class="legend"><span><i style="background:#1479bd"></i>Baseline</span><span><i style="background:#208254"></i>Optimized</span></div><div class="chart-scroll"><svg viewBox="0 0 860 350" role="img" aria-label="Throughput over time"><title>Throughput over time</title><desc>数据表：timeline · 单位：req/s · 横轴按数据行等间隔排列；完整数值见正文数据表。</desc><line x1="85" x2="810" y1="270.00" y2="270.00" stroke="#e2e8ef"/><text x="75.00" y="274.00" font-size="11" text-anchor="end">0</text><line x1="85" x2="810" y1="211.25" y2="211.25" stroke="#e2e8ef"/><text x="75.00" y="215.25" font-size="11" text-anchor="end">40</text><line x1="85" x2="810" y1="152.50" y2="152.50" stroke="#e2e8ef"/><text x="75.00" y="156.50" font-size="11" text-anchor="end">80</text><line x1="85" x2="810" y1="93.75" y2="93.75" stroke="#e2e8ef"/><text x="75.00" y="97.75" font-size="11" text-anchor="end">120</text><line x1="85" x2="810" y1="35.00" y2="35.00" stroke="#e2e8ef"/><text x="75.00" y="39.00" font-size="11" text-anchor="end">160</text><polyline points="85.00,126.06 266.25,123.12 447.50,121.66 628.75,124.59 810.00,123.12" fill="none" stroke="#1479bd" stroke-width="2.5"/><circle cx="85.00" cy="126.06" r="4" fill="#1479bd"><title>1 · Baseline: 98req/s</title></circle><circle cx="266.25" cy="123.12" r="4" fill="#1479bd"><title>2 · Baseline: 100req/s</title></circle><circle cx="447.50" cy="121.66" r="4" fill="#1479bd"><title>3 · Baseline: 101req/s</title></circle><circle cx="628.75" cy="124.59" r="4" fill="#1479bd"><title>4 · Baseline: 99req/s</title></circle><circle cx="810.00" cy="123.12" r="4" fill="#1479bd"><title>5 · Baseline: 100req/s</title></circle><polyline points="85.00,46.75 266.25,37.94 447.50,35.00 628.75,36.47 810.00,35.00" fill="none" stroke="#208254" stroke-width="2.5"/><circle cx="85.00" cy="46.75" r="4" fill="#208254"><title>1 · Optimized: 152req/s</title></circle><circle cx="266.25" cy="37.94" r="4" fill="#208254"><title>2 · Optimized: 158req/s</title></circle><circle cx="447.50" cy="35.00" r="4" fill="#208254"><title>3 · Optimized: 160req/s</title></circle><circle cx="628.75" cy="36.47" r="4" fill="#208254"><title>4 · Optimized: 159req/s</title></circle><circle cx="810.00" cy="35.00" r="4" fill="#208254"><title>5 · Optimized: 160req/s</title></circle><text x="85.00" y="294.00" font-size="11" text-anchor="middle">1</text><text x="266.25" y="294.00" font-size="11" text-anchor="middle">2</text><text x="447.50" y="294.00" font-size="11" text-anchor="middle">3</text><text x="628.75" y="294.00" font-size="11" text-anchor="middle">4</text><text x="810.00" y="294.00" font-size="11" text-anchor="middle">5</text></svg></div><div class="chart-meta">数据表：timeline · 单位：req/s · 横轴按数据行等间隔排列</div></figure><h2 id="section-4">
+Trade-offs</h2>
+<div class="table-wrap" id="table-changes"><table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align:right">Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Throughput</td>
+<td style="text-align:right">60%</td>
+</tr>
+<tr>
+<td>Peak memory</td>
+<td style="text-align:right">60%</td>
+</tr>
+<tr>
+<td>Latency</td>
+<td style="text-align:right">-20%</td>
+</tr>
+</tbody>
+</table>
+</div><figure class="chart"><figcaption>Relative change from baseline</figcaption><div class="legend"><span><i style="background:#1479bd"></i>Change</span></div><div class="chart-scroll"><svg viewBox="0 0 860 202" role="img" aria-label="Relative change from baseline"><title>Relative change from baseline</title><desc>数据表：changes · 单位：%；完整数值见正文数据表。</desc><line x1="210.00" x2="210.00" y1="24" y2="177" stroke="#e2e8ef"/><text x="210.00" y="197.00" font-size="11" text-anchor="middle">-20</text><line x1="347.50" x2="347.50" y1="24" y2="177" stroke="#e2e8ef"/><text x="347.50" y="197.00" font-size="11" text-anchor="middle">0</text><line x1="485.00" x2="485.00" y1="24" y2="177" stroke="#e2e8ef"/><text x="485.00" y="197.00" font-size="11" text-anchor="middle">20</text><line x1="622.50" x2="622.50" y1="24" y2="177" stroke="#e2e8ef"/><text x="622.50" y="197.00" font-size="11" text-anchor="middle">40</text><line x1="760.00" x2="760.00" y1="24" y2="177" stroke="#e2e8ef"/><text x="760.00" y="197.00" font-size="11" text-anchor="middle">60</text><text x="198.00" y="49.00" font-size="12" text-anchor="end">Throughput</text><rect x="347.50" y="35" width="412.50" height="18" rx="3" fill="#1479bd"><title>Throughput · Change: 60%</title></rect><text x="772.00" y="49.00" font-size="12" text-anchor="start">60</text><text x="198.00" y="97.00" font-size="12" text-anchor="end">Peak memory</text><rect x="347.50" y="83" width="412.50" height="18" rx="3" fill="#1479bd"><title>Peak memory · Change: 60%</title></rect><text x="772.00" y="97.00" font-size="12" text-anchor="start">60</text><text x="198.00" y="145.00" font-size="12" text-anchor="end">Latency</text><rect x="210.00" y="131" width="137.50" height="18" rx="3" fill="#1479bd"><title>Latency · Change: -20%</title></rect><text x="772.00" y="145.00" font-size="12" text-anchor="start">-20</text><line x1="347.50" x2="347.50" y1="24" y2="177" stroke="#8493a4"/></svg></div><div class="chart-meta">数据表：changes · 单位：%</div></figure><p>
+Positive values do not always mean improvement: higher memory consumption is a cost. Interpret each metric in context.</p>
+<h2 id="section-5">
+Reproduction notes</h2>
+<pre><code class="language-text">Configuration: fictional demo
+Input: fixed synthetic workload
+Measurement window: 5 equally spaced observations
+</code></pre>
+<blockquote class="callout callout-tip">
+<p>
+Keep real commands, data sources, and limitations alongside the measurements. Edit Markdown and regenerate HTML; do not maintain two separate report bodies.</p>
+</blockquote>
+<h2 id="section-6">
+Next steps</h2>
+<ol>
+<li>
+Replace the fictional measurements with verified project data.</li>
+<li>
+Update the decision and limitations to match the evidence.</li>
+<li>
+Regenerate the HTML and inspect it in a browser.</li>
+</ol>
+</main>
+<nav aria-label="报告目录"><details><summary>报告目录</summary><ul><li><a href="#section-2">Configuration comparison</a></li><li><a href="#section-3">Throughput during a run</a></li><li><a href="#section-4">Trade-offs</a></li><li><a href="#section-5">Reproduction notes</a></li><li><a href="#section-6">Next steps</a></li></ul></details></nav>
+<footer>由 example.md 生成 · 主稿 SHA-256 263037159d8d1e3f<br>编辑 Markdown 后重新生成 HTML，正文、表格与图表同步更新。</footer>
+</body>
+</html>

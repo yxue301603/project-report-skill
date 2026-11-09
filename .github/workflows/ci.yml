@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r skills/project-report/requirements.txt PyYAML
+      - run: python -X utf8 skills/project-report/scripts/test_render_report.py
+      - run: python -X utf8 scripts/validate_package.py
+      - run: python -X utf8 skills/project-report/scripts/render_report.py skills/project-report/assets/example.md
